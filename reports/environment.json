@@ -1,0 +1,33 @@
+{
+  "timestamp": "2026-10-01T15:25:29+00:00",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "cpu": "arm",
+  "architecture": "arm64",
+  "logical_cpus": 10,
+  "compiler": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin",
+  "build_type": "Release",
+  "cxx_flags": "",
+  "release_flags": "-O3 -DNDEBUG",
+  "standard": "C++20",
+  "sanitizers_in_benchmark": false,
+  "lto": false,
+  "threads": 1,
+  "clock": "std::chrono::steady_clock",
+  "warmups": 3,
+  "repetitions": 21,
+  "seed": 20261001,
+  "sizes": [
+    1000,
+    10000,
+    100000,
+    1000000
+  ],
+  "validation": "Test project /Users/nosovdanil/CLionProjects/smartptr/build/benchmark-release\n    Start 1: pointer_correctness\n1/1 Test #1: pointer_correctness ..............   Passed    0.16 sec\n\n100% tests passed out of 1\n\nTotal Test time (real) =   0.16 sec",
+  "python": "3.13.5",
+  "libraries": {
+    "seaborn": "0.13.2",
+    "matplotlib": "3.10.8",
+    "pandas": "3.0.2",
+    "numpy": "2.4.4"
+  }
+}

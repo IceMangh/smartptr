@@ -2,6 +2,16 @@ cmake_minimum_required(VERSION 4.0)
 project(smartptr)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Benchmarks must be configured with -DCMAKE_BUILD_TYPE=Release.
+# No sanitizers or LTO: opaque.cpp provides the optimization barrier.
+add_executable(pointer_benchmarks benchmarks/benchmark.cpp benchmarks/opaque.cpp)
+target_include_directories(pointer_benchmarks PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+set_target_properties(pointer_benchmarks PROPERTIES INTERPROCEDURAL_OPTIMIZATION FALSE)
+
+enable_testing()
+add_test(NAME pointer_correctness COMMAND pointer_tests)
 
 
 add_executable(smartptr main.cpp

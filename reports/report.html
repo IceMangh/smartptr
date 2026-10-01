@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SmartPtr — сравнение производительности</title><style>
+    :root{--ink:#203444;--muted:#63717a;--teal:#087f8c;--paper:#faf9f6}*{box-sizing:border-box}
+    body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.7 system-ui,-apple-system,sans-serif}
+    main{max-width:1120px;margin:auto;padding:70px 36px}header{border-top:5px solid var(--teal);padding-top:25px}
+    .eyebrow{text-transform:uppercase;letter-spacing:.18em;font-size:12px;font-weight:700;color:var(--teal)}
+    h1{font-size:clamp(38px,6vw,68px);line-height:1.07;letter-spacing:-.045em;max-width:850px;margin:24px 0}
+    .lead{font-size:21px;color:var(--muted);max-width:800px}.tags{display:flex;gap:9px;flex-wrap:wrap;margin:24px 0}
+    .tags span{background:#eaf1ee;padding:5px 12px;border-radius:30px;font-size:12px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:35px 0}
+    .card{padding:23px;border:1px solid #dadfdc;border-radius:14px;background:white}.card small{display:block;color:var(--muted)}
+    .number{font-size:38px;font-weight:750;letter-spacing:-.035em;color:var(--teal)}.card p{font-size:13px;margin:8px 0 0}
+    section{margin-top:55px}h2{font-size:29px;letter-spacing:-.025em;margin-bottom:12px}h3{font-size:19px}p{margin:12px 0}
+    figure{margin:25px -12px}figure img{width:100%;height:auto}figcaption{font-size:12px;color:var(--muted);padding:0 12px}
+    table{border-collapse:collapse;width:100%;font-size:14px}th{text-align:left;background:#eaf1ee;font-weight:650}
+    td,th{padding:12px 15px;border-bottom:1px solid #dce1de}tbody tr:hover{background:#edf4f1}
+    .table-wrap{overflow:auto}li{margin:11px 0}ul{padding-left:22px}.note{border-left:4px solid #e17948;background:#f7eee5;padding:18px 24px;border-radius:0 10px 10px 0}
+    a{color:var(--teal)}pre{padding:22px;background:#203444;color:#eff5f3;border-radius:12px;overflow:auto;font-size:13px}
+    footer{margin-top:60px;padding-top:24px;border-top:1px solid #dce1de;font-size:12px;color:var(--muted)}
+    @media(max-width:680px){main{padding:30px 18px}.cards{grid-template-columns:1fr}td,th{padding:9px}figure{margin:20px 0}}
+    @media print{main{padding:0}.card,figure,tr{break-inside:avoid}h2{break-after:avoid}body{font-size:11pt}.number{font-size:25pt}section{margin-top:24px}}
+    </style></head><body><main>
+<header><div class="eyebrow">Smartptr / Performance study / 2026-10-01</div>
+<h1>Цена владения.<br>В цифрах и графиках.</h1>
+<p class="lead">Сравнение UnqPtr и ShrdPtr со стандартными умными указателями C++: от создания объекта до работы связного стека.</p>
+<div class="tags"><span>C++20 · Release</span><span>Seaborn 0.13.2</span><span>21 повторений</span><span>4 масштаба</span><span>ASan + UBSan: пройдено</span></div></header>
+<div class="cards"><div class="card"><small>UnqPtr / std::unique_ptr</small><div class="number">1.03×</div><p>Отношение медиан полного цикла · N = 100 000</p></div>
+<div class="card"><small>ShrdPtr / std::shared_ptr</small><div class="number">0.85×</div><p>Однопоточное сравнение · N = 100 000</p></div>
+<div class="card"><small>Проверенных замеров</small><div class="number">2,436</div><p>Каждый результат подтверждён контрольной суммой</p></div></div>
+<div class="note">Значение меньше 1× означает меньшее время у своего указателя. Отношение времён не является оценкой статистической значимости.</div>
+<section><div class="eyebrow">01 / Главный результат</div><h2>Полный жизненный цикл</h2><p>Создание, чтение и уничтожение объектов; стоимость выделения вектора тоже включена.</p>
+<figure><img src="figures/01_scaling.svg" alt="Масштабирование полного цикла: медиана и межквартильный интервал."><figcaption>Масштабирование полного цикла: медиана и межквартильный интервал.</figcaption></figure>
+<div class="table-wrap"><table class="dataframe results">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Реализация</th>
+      <th>Медиана, мс</th>
+      <th>IQR, мс</th>
+      <th>нс / элемент</th>
+      <th>Замеров</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>UnqPtr</td>
+      <td>1.333</td>
+      <td>1.287–1.397</td>
+      <td>13.326</td>
+      <td>21</td>
+    </tr>
+    <tr>
+      <td>std::unique_ptr</td>
+      <td>1.291</td>
+      <td>1.264–1.347</td>
+      <td>12.909</td>
+      <td>21</td>
+    </tr>
+    <tr>
+      <td>ShrdPtr</td>
+      <td>2.507</td>
+      <td>2.470–2.597</td>
+      <td>25.066</td>
+      <td>21</td>
+    </tr>
+    <tr>
+      <td>std::shared_ptr</td>
+      <td>2.938</td>
+      <td>2.859–3.244</td>
+      <td>29.385</td>
+      <td>21</td>
+    </tr>
+    <tr>
+      <td>std::make_shared</td>
+      <td>1.784</td>
+      <td>1.677–1.938</td>
+      <td>17.843</td>
+      <td>21</td>
+    </tr>
+  </tbody>
+</table></div><figure><img src="figures/02_distribution.svg" alt="Все повторения при N = 100 000. Медианы подписаны справа."><figcaption>Все повторения при N = 100 000. Медианы подписаны справа.</figcaption></figure></section>
+<section><div class="eyebrow">02 / Разбор операций</div><h2>Разница зависит от сценария</h2>
+<figure><img src="figures/03_ratios.svg" alt="Отношения медиан своих и стандартных реализаций."><figcaption>Отношения медиан своих и стандартных реализаций.</figcaption></figure>
+<details><summary>Подробная таблица операций при N = 100 000</summary><div class="table-wrap"><table class="dataframe results">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Сценарий</th>
+      <th>Реализация</th>
+      <th>Медиана, мс</th>
+      <th>нс / единицу работы</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Создание</td>
+      <td>UnqPtr</td>
+      <td>0.567</td>
+      <td>5.668</td>
+    </tr>
+    <tr>
+      <td>Создание</td>
+      <td>std::unique_ptr</td>
+      <td>0.542</td>
+      <td>5.418</td>
+    </tr>
+    <tr>
+      <td>Создание</td>
+      <td>ShrdPtr</td>
+      <td>1.080</td>
+      <td>10.802</td>
+    </tr>
+    <tr>
+      <td>Создание</td>
+      <td>std::shared_ptr</td>
+      <td>1.128</td>
+      <td>11.278</td>
+    </tr>
+    <tr>
+      <td>Создание</td>
+      <td>std::make_shared</td>
+      <td>0.591</td>
+      <td>5.914</td>
+    </tr>
+    <tr>
+      <td>Чтение</td>
+      <td>UnqPtr</td>
+      <td>0.775</td>
+      <td>0.242</td>
+    </tr>
+    <tr>
+      <td>Чтение</td>
+      <td>std::unique_ptr</td>
+      <td>0.721</td>
+      <td>0.225</td>
+    </tr>
+    <tr>
+      <td>Чтение</td>
+      <td>ShrdPtr</td>
+      <td>0.934</td>
+      <td>0.292</td>
+    </tr>
+    <tr>
+      <td>Чтение</td>
+      <td>std::shared_ptr</td>
+      <td>0.967</td>
+      <td>0.302</td>
+    </tr>
+    <tr>
+      <td>Чтение</td>
+      <td>std::make_shared</td>
+      <td>1.329</td>
+      <td>0.415</td>
+    </tr>
+    <tr>
+      <td>Перемещение</td>
+      <td>UnqPtr</td>
+      <td>1.880</td>
+      <td>0.587</td>
+    </tr>
+    <tr>
+      <td>Перемещение</td>
+      <td>std::unique_ptr</td>
+      <td>1.872</td>
+      <td>0.585</td>
+    </tr>
+    <tr>
+      <td>Перемещение</td>
+      <td>ShrdPtr</td>
+      <td>2.855</td>
+      <td>0.892</td>
+    </tr>
+    <tr>
+      <td>Перемещение</td>
+      <td>std::shared_ptr</td>
+      <td>2.827</td>
+      <td>0.884</td>
+    </tr>
+    <tr>
+      <td>Перемещение</td>
+      <td>std::make_shared</td>
+      <td>2.816</td>
+      <td>0.880</td>
+    </tr>
+    <tr>
+      <td>Копирование + удаление копий</td>
+      <td>ShrdPtr</td>
+      <td>2.123</td>
+      <td>1.327</td>
+    </tr>
+    <tr>
+      <td>Копирование + удаление копий</td>
+      <td>std::shared_ptr</td>
+      <td>4.684</td>
+      <td>2.928</td>
+    </tr>
+    <tr>
+      <td>Копирование + удаление копий</td>
+      <td>std::make_shared</td>
+      <td>4.605</td>
+      <td>2.878</td>
+    </tr>
+    <tr>
+      <td>Массив</td>
+      <td>UnqPtr</td>
+      <td>1.185</td>
+      <td>0.370</td>
+    </tr>
+    <tr>
+      <td>Массив</td>
+      <td>std::unique_ptr</td>
+      <td>1.186</td>
+      <td>0.371</td>
+    </tr>
+    <tr>
+      <td>Массив</td>
+      <td>ShrdPtr</td>
+      <td>1.172</td>
+      <td>0.366</td>
+    </tr>
+    <tr>
+      <td>Массив</td>
+      <td>std::shared_ptr</td>
+      <td>1.179</td>
+      <td>0.368</td>
+    </tr>
+    <tr>
+      <td>Стек</td>
+      <td>Stack&lt;UnqPtr&gt;</td>
+      <td>1.363</td>
+      <td>13.627</td>
+    </tr>
+    <tr>
+      <td>Стек</td>
+      <td>Stack&lt;std::unique_ptr&gt;</td>
+      <td>1.530</td>
+      <td>15.300</td>
+    </tr>
+  </tbody>
+</table></div></details></section>
+<section><div class="eyebrow">03 / Практические нагрузки</div><h2>Массивы и связный стек</h2>
+<figure><img src="figures/04_arrays_stack.svg" alt="Массивы и стеки: одинаковая работа, разные оболочки владения."><figcaption>Массивы и стеки: одинаковая работа, разные оболочки владения.</figcaption></figure></section>
+<section><div class="eyebrow">04 / Интерпретация</div><h2>Что следует из измерений</h2><ul><li>При N = 100 000 полный цикл UnqPtr занимает 1.333 мс, std::unique_ptr — 1.291 мс. Отношение времён — 1.03×.</li><li>ShrdPtr: 2.507 мс; std::shared_ptr(new int): 2.938 мс. Отношение — 0.85×. Сравнение относится к одному потоку; ShrdPtr не синхронизирует счётчик ссылок.</li><li>std::make_shared: 1.784 мс; отношение к std::shared_ptr(new int) — 0.61×. Это отдельный способ выделения памяти, показанный как дополнительный ориентир.</li><li>Эти замеры показывают поведение конкретной машины и сборки. Небольшие различия при пересекающемся IQR не доказывают устойчивое преимущество; статистическая значимость здесь не проверяется.</li></ul></section>
+<section><div class="eyebrow">05 / Методика</div><h2>Как получены результаты</h2><ul><li>Release, C++20, без санитайзеров и LTO. Тесты корректности выполняются отдельно с AddressSanitizer и UndefinedBehaviorSanitizer; проверки assert включены.</li><li>Четыре размера N: 1 000, 10 000, 100 000, 1 000 000. Для каждого сочетания — 3 прогрева и 21 учитываемое повторение. Всего 2,436 измерений. Порядок случаев перемешивается на каждом проходе, seed = 20261001.</li><li>steady_clock измеряет стеновое время. Используются медиана и межквартильный интервал (25–75%); IQR описывает разброс замеров и не является доверительным интервалом.</li><li>Полный цикл включает создание вектора, N отдельных объектов int, чтение и уничтожение. Создание отдельно: вектор подготовлен заранее, чтение и удаление за границей таймера.</li><li>Чтение: 32 прохода по заранее созданным объектам. Перемещение: 16 проходов туда и обратно между двумя подготовленными векторами, 32N move-присваиваний; получатель пустой.</li><li>Копирование: 16 созданий вектора копий и его уничтожений. Включены выделение буфера вектора, увеличение и уменьшение счётчиков; нс / единицу — одна пара копирование + уничтожение, а не одна инструкция.</li><li>Массив: 32 цикла new int[N], заполнение, чтение, delete[]. Нормирование — на 32N обработанных элементов. Для полного цикла, создания и стека единица работы — один элемент; для чтения — одно разыменование; для перемещения — одно move-присваивание.</li><li>Стек: N push и N top/pop. Стандартный контроль реализован тем же связным алгоритмом с итеративным удалением, на std::unique_ptr; это не std::stack с иным контейнером.</li><li>Непрозрачная функция в отдельной единице трансляции делает буферы наблюдаемыми для оптимизатора. Все случаи проверяют сумму i % 97 + 1; перемещение дополнительно проверяет пустые источники, копирование — use_count() == 1 после удаления копий.</li></ul>
+<h3>Ограничения сравнения</h3><ul><li>ShrdPtr использует обычный счётчик ссылок. Стандартный shared_ptr поддерживает безопасное изменение владения разными экземплярами в разных потоках; общий набор гарантий у реализаций различается.</li><li>Использован системный аллокатор. Создание отдельных int и служебных блоков может доминировать над стоимостью оболочки указателя. Кэш и аллокатор находятся в прогретом состоянии; холодный старт не измерен.</li><li>В этой серии не контролируются частота CPU, фоновые процессы и привязка к ядру. Отдельные процессы и повторения на других машинах не выполнялись.</li><li>Память, многопоточность, weak_ptr, пользовательские deleter и большие объекты не измерялись. Отчёт не утверждает функциональную эквивалентность своих указателей стандартным.</li></ul></section>
+<section><div class="eyebrow">06 / Воспроизводимость</div><h2>Окружение и повторный запуск</h2><div class="table-wrap"><table class="dataframe results">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Параметр</th>
+      <th>Значение</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Дата (UTC)</td>
+      <td>2026-10-01T15:25:29+00:00</td>
+    </tr>
+    <tr>
+      <td>CPU</td>
+      <td>arm</td>
+    </tr>
+    <tr>
+      <td>Система</td>
+      <td>macOS-26.6.2-arm64-arm-64bit-Mach-O</td>
+    </tr>
+    <tr>
+      <td>Архитектура</td>
+      <td>arm64</td>
+    </tr>
+    <tr>
+      <td>Компилятор</td>
+      <td>Apple clang version 21.0.0 (clang-2100.3.34.2)</td>
+    </tr>
+    <tr>
+      <td>Флаги</td>
+      <td>-O3 -DNDEBUG</td>
+    </tr>
+    <tr>
+      <td>Python</td>
+      <td>3.13.5</td>
+    </tr>
+    <tr>
+      <td>Seaborn</td>
+      <td>0.13.2</td>
+    </tr>
+    <tr>
+      <td>Потоков</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>Проверка</td>
+      <td>CTest: 1/1, ASan + UBSan</td>
+    </tr>
+  </tbody>
+</table></div>
+<pre><code>python3 -m venv .venv
+.venv/bin/python -m pip install -r benchmarks/requirements.txt
+.venv/bin/python benchmarks/run.py
+
+# Перестроить оформление из сохранённых данных:
+.venv/bin/python benchmarks/report.py</code></pre><p><a href="raw.csv">Исходные замеры CSV</a> · <a href="summary.csv">Агрегаты CSV</a> · <a href="environment.json">Полное окружение JSON</a> · <a href="REPORT.md">Отчёт Markdown</a></p></section>
+<footer>SmartPtr Performance Lab · Графики построены Seaborn по реальным локальным измерениям. SVG — для печати, PNG — для презентаций.</footer>
+</main></body></html>
